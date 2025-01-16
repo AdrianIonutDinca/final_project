@@ -1,0 +1,23 @@
+<form method="POST" action="{% url 'selected_products' %}">
+    {% csrf_token %}
+    <div>
+        <h2>Products</h2>
+        {% for product in products %}
+            <div>
+                <input type="checkbox" name="products" value="{{ product.id }}" id="product-{{ product.id }}">
+                <label for="product-{{ product.id }}">{{ product.denumire }}</label>
+            </div>
+        {% endfor %}
+    </div>
+    <div>
+        <h2>Stores</h2>
+        {% for store in stores %}
+            <div>
+                <input type="checkbox" name="stores" value="{{ store.id }}" id="store-{{ store.id }}">
+                <label for="store-{{ store.id }}">{{ store.magazin }}</label>
+            </div>
+        {% endfor %}
+    </div>
+    <button type="submit">Submit Selection</button>
+</form>
+

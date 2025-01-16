@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selected Products and Stores</title>
+</head>
+<body>
+    <h1>Selected Products and Stores</h1>
+    <div>
+        <h2>Products</h2>
+        <ul>
+            {% for product in products %}
+                <li>{{ product.denumire }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div>
+        <h2>Stores</h2>
+        <ul>
+            {% for store in stores %}
+                <li>{{ store.magazin }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+</html>
+
