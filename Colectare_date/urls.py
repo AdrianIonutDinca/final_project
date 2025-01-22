@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 from viewer import views
 from viewer.views import SelectProductsView, SelectedProductsView
+from django.contrib.auth import views as auth_views
 
 
 
@@ -29,4 +30,9 @@ urlpatterns = [
     path('magazine/', views.lista_magazine, name='lista_magazine'),
     path('select-products/', SelectProductsView.as_view(), name='select_products'),
     path('selected-products/', SelectedProductsView.as_view(), name='selected_products'),
+    path('accounts/login/', auth_views.LoginView.as_view(), name='login'),
+    path('accounts/logout/', auth_views.LogoutView.as_view(), name='logout'),
+    # path('select-products/', views.select_products, name='select-products'),
+    # path('selected-products/', views.selected_products, name='selected-products'),
+
 ]

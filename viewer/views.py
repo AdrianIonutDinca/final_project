@@ -16,6 +16,9 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 from .models import Produs, Magazin
+from django.contrib.auth.decorators import login_required, user_passes_test
+from datetime import datetime
+
 
 
 
@@ -45,7 +48,17 @@ def submit_selection(request):
 def selected_products(request):
     selected_ids = request.session.get('selected_products', [])
     products = Produs.objects.filter(id__in=selected_ids)
-    return render(request, 'selected_products.html', {'products': products})
+
+    context = {
+        'products': products,
+        'username': request.user.username,  # Numele utilizatorului autentificat
+        'current_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),  # Data și ora curentă
+    }
+
+    return render(request, 'selected_products.html', context)
+
+
+    # return render(request, 'selected_products.html', {'products': products})
 
 class SelectProductsView(View):
     def get(self, request):
@@ -88,8 +101,37 @@ class SelectedProductsView(View):
         selected_products = Produs.objects.filter(id__in=selected_products_ids)
         selected_stores = Magazin.objects.filter(id__in=selected_stores_ids)
 
+        # Creează combinațiile dintre produsele selectate și toate magazinele
+        product_store_combinations = [
+            f"{product.denumire} - {store.magazin}"
+            for product in selected_products
+            for store in selected_stores]
+
         # Trimite datele către șablon
         return render(request, 'selected_products.html', {
             'products': selected_products,
             'stores': selected_stores,
+            'combinations': product_store_combinations,
         })
+
+
+
+
+def is_client(user):
+    return user.groups.filter(name='Client').exists()
+
+@login_required
+@user_passes_test(is_client)
+def select_products(request):
+    # Logica pentru pagina select-products
+    return render(request, 'SelectProductsView.as_view()/select_products.html')
+    # return render(request, 'viewer/select_products.html')
+
+@login_required
+@user_passes_test(is_client)
+def selected_products(request):
+    # Logica pentru pagina selected-products
+    return render(request, 'SelectedProductsView.as_view()/selected_products.html')
+    # return render(request, 'viewer/selected_products.html')
+
+

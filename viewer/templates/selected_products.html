@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Selected Products and Stores</title>
+    <br>
 </head>
 <body>
     <h1>Selected Products and Stores</h1>
@@ -23,6 +24,13 @@
             {% endfor %}
         </ul>
     </div>
+
+    <h2>Selected Products and Associated Stores</h2>
+    <ul>
+        {% for combination in combinations %}
+            <li>{{ combination }}</li>
+        {% endfor %}
+    </ul>
+
 </body>
 </html>
-
