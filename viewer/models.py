@@ -1,5 +1,7 @@
 from django.db import models
 from django.db.models import *
+from django.contrib.auth.models import User
+
 
 # Create your models here.
 class Categ(models.Model):
@@ -57,8 +59,32 @@ class Magazin(models.Model):
 
     magazin = CharField(max_length=128)
     retea = CharField(max_length=128)
+    judet = CharField(max_length=128, blank=True, null=True)
 
     def __str__(self):
-        return f'{self.magazin}'
+        return f'{self.magazin} ({self.judet})'
+
+class OperatorProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    judet = models.CharField(max_length=128, blank=True, null=True)  # Câmp pentru județ
+
+    def __str__(self):
+        return f"{self.user.username} - {self.judet or 'Fără județ'}"
 
 
+class Cerere(models.Model):
+    client = models.ForeignKey(User, on_delete=models.CASCADE, related_name='cereri')
+    data_cerere = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Cerere de la {self.client.username} din {self.data_cerere}"
+
+
+class Preturi(models.Model):
+    cerere = models.ForeignKey(Cerere, on_delete=models.CASCADE, related_name='preturi')
+    produs = models.ForeignKey(Produs, on_delete=models.CASCADE)
+    magazin = models.ForeignKey(Magazin, on_delete=models.CASCADE)
+    pret = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return f"{self.produs.denumire} - {self.magazin.magazin}: {self.pret} lei"

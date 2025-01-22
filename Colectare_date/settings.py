@@ -124,7 +124,7 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-LOGIN_REDIRECT_URL = '/select-products/'  # Redirecționează utilizatorii autentificați aici
+LOGIN_REDIRECT_URL = '/redirect-after-login/'  # Redirecționează utilizatorii autentificați aici
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 
 SESSION_ENGINE = "django.contrib.sessions.backends.db"

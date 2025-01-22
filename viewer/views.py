@@ -18,6 +18,9 @@ import json
 from .models import Produs, Magazin
 from django.contrib.auth.decorators import login_required, user_passes_test
 from datetime import datetime
+from .models import Cerere, Preturi
+from django.shortcuts import redirect
+from django.contrib.auth.decorators import login_required
 
 
 
@@ -135,3 +138,72 @@ def selected_products(request):
     # return render(request, 'viewer/selected_products.html')
 
 
+@login_required
+def operator_view(request):
+    # Obținem județul operatorului din profil
+    user_judet = request.user.profile.judet
+
+    # Filtrăm magazinele și produsele pe baza județului
+    if user_judet:
+        magazine = Magazin.objects.filter(judet=user_judet)
+    else:
+        magazine = Magazin.objects.none()
+
+    produse = Produs.objects.all()  # Toate produsele sunt disponibile pentru selecție
+
+    # Pregătim combinațiile produs-magazin
+    product_store_combinations = [
+        {"product": produs, "store": magazin}
+        for produs in produse
+        for magazin in magazine
+    ]
+
+    return render(request, 'operator_view.html', {
+        'combinations': product_store_combinations,
+    })
+
+@login_required
+def operator_view(request):
+    user_judet = request.user.profile.judet
+    magazine = Magazin.objects.filter(judet=user_judet) if user_judet else Magazin.objects.none()
+    produse = Produs.objects.all()
+
+    product_store_combinations = [
+        {"product": produs, "store": magazin}
+        for produs in produse
+        for magazin in magazine
+    ]
+
+    if request.method == "POST":
+        # Creăm o cerere pentru acest operator
+        cerere = Cerere.objects.create(client=request.user)
+
+        # Salvăm prețurile completate
+        for combination in product_store_combinations:
+            product = combination["product"]
+            store = combination["store"]
+            price_key = f"price_{product.id}_{store.id}"
+            price_value = request.POST.get(price_key)
+
+            if price_value:
+                Preturi.objects.create(
+                    cerere=cerere,
+                    produs=product,
+                    magazin=store,
+                    pret=price_value
+                )
+
+        return render(request, 'success.html', {"message": "Prețurile au fost salvate!"})
+
+    return render(request, 'operator_view.html', {
+        'combinations': product_store_combinations,
+    })
+
+@login_required
+def redirect_after_login(request):
+    if request.user.groups.filter(name='Operatori').exists():
+        return redirect('operator-view')  # Redirecționează la operator_view
+    elif request.user.groups.filter(name='Client').exists():
+        return redirect('select-products')  # Redirecționează la select_products
+    else:
+        return redirect('home')  # Redirecționează la o pagină implicită (poate fi dashboard-ul principal)

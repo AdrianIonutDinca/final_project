@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Operator - Colectare Prețuri</title>
+</head>
+<body>
+    <h1>Colectare Prețuri</h1>
+    <form method="post">
+        {% csrf_token %}
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Produs</th>
+                    <th>Magazin</th>
+                    <th>Preț</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for combination in combinations %}
+                    <tr>
+                        <td>{{ combination.product.denumire }}</td>
+                        <td>{{ combination.store.magazin }}</td>
+                        <td>
+                            <input type="text"
+                                   name="price_{{ combination.product.id }}_{{ combination.store.id }}"
+                                   placeholder="Introduceți prețul">
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button type="submit">Salvează Prețurile</button>
+    </form>
+</body>
+</html>
