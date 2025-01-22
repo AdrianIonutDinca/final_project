@@ -207,3 +207,9 @@ def redirect_after_login(request):
         return redirect('select-products')  # Redirecționează la select_products
     else:
         return redirect('home')  # Redirecționează la o pagină implicită (poate fi dashboard-ul principal)
+
+
+    # elif request.user.groups.filter(name='Client').exists():
+    #     return redirect('select-products')  # Redirecționează la select_products
+    # else:
+    #     return redirect('home')  # Redirecționează la o pagină implicită (poate fi dashboard-ul principal)
