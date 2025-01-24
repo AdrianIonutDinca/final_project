@@ -21,6 +21,15 @@ from datetime import datetime
 from .models import Cerere, Preturi
 from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
+import sqlite3
+from viewer.models import SelectedData
+from viewer.models import SavedPrices
+from django.contrib.auth import logout
+from django.template.loader import render_to_string
+from django.contrib.auth import logout
+from django.db.models import Q
+from django.utils.timezone import localtime
+
 
 
 
@@ -55,13 +64,11 @@ def selected_products(request):
     context = {
         'products': products,
         'username': request.user.username,  # Numele utilizatorului autentificat
-        'current_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),  # Data și ora curentă
     }
 
     return render(request, 'selected_products.html', context)
 
 
-    # return render(request, 'selected_products.html', {'products': products})
 
 class SelectProductsView(View):
     def get(self, request):
@@ -123,93 +130,190 @@ class SelectedProductsView(View):
 def is_client(user):
     return user.groups.filter(name='Client').exists()
 
+# @login_required
+# @user_passes_test(is_client)
+# def select_products(request):
+#     # Logica pentru pagina select-products
+#     return render(request, 'SelectProductsView.as_view()/select_products.html')
+#     # return render(request, 'viewer/select_products.html')
+
 @login_required
 @user_passes_test(is_client)
 def select_products(request):
-    # Logica pentru pagina select-products
-    return render(request, 'SelectProductsView.as_view()/select_products.html')
-    # return render(request, 'viewer/select_products.html')
+    products = Produs.objects.all()  # Obține toate produsele
+    stores = Magazin.objects.all()  # Obține toate magazinele
+    return render(request, 'select_products.html', {'products': products, 'stores': stores})
+
+
 
 @login_required
 @user_passes_test(is_client)
 def selected_products(request):
     # Logica pentru pagina selected-products
-    return render(request, 'SelectedProductsView.as_view()/selected_products.html')
+    return render(request, 'selected_products.html')
     # return render(request, 'viewer/selected_products.html')
 
 
 @login_required
-def operator_view(request):
-    # Obținem județul operatorului din profil
-    user_judet = request.user.profile.judet
-
-    # Filtrăm magazinele și produsele pe baza județului
-    if user_judet:
-        magazine = Magazin.objects.filter(judet=user_judet)
-    else:
-        magazine = Magazin.objects.none()
-
-    produse = Produs.objects.all()  # Toate produsele sunt disponibile pentru selecție
-
-    # Pregătim combinațiile produs-magazin
-    product_store_combinations = [
-        {"product": produs, "store": magazin}
-        for produs in produse
-        for magazin in magazine
-    ]
-
-    return render(request, 'operator_view.html', {
-        'combinations': product_store_combinations,
-    })
-
 @login_required
 def operator_view(request):
+    # Obține județul utilizatorului din profil
     user_judet = request.user.profile.judet
     magazine = Magazin.objects.filter(judet=user_judet) if user_judet else Magazin.objects.none()
-    produse = Produs.objects.all()
 
-    product_store_combinations = [
-        {"product": produs, "store": magazin}
-        for produs in produse
-        for magazin in magazine
-    ]
+    # Obține doar intrările din SelectedData fără preț
+    data = SelectedData.objects.filter(store__in=magazine, price__isnull=True)
 
-    if request.method == "POST":
-        # Creăm o cerere pentru acest operator
-        cerere = Cerere.objects.create(client=request.user)
-
-        # Salvăm prețurile completate
-        for combination in product_store_combinations:
-            product = combination["product"]
-            store = combination["store"]
-            price_key = f"price_{product.id}_{store.id}"
+    if request.method == 'POST':
+        # Salvează prețurile introduse de operator
+        for entry in data:
+            price_key = f'price_{entry.id}'
             price_value = request.POST.get(price_key)
 
-            if price_value:
-                Preturi.objects.create(
-                    cerere=cerere,
-                    produs=product,
-                    magazin=store,
-                    pret=price_value
-                )
+            if price_value:  # Dacă un preț este introdus
+                entry.price = price_value  # Actualizează câmpul preț
+                entry.save()  # Salvează modificările în baza de date
 
         return render(request, 'success.html', {"message": "Prețurile au fost salvate!"})
 
+    # Transmite doar intrările fără preț către șablon
     return render(request, 'operator_view.html', {
-        'combinations': product_store_combinations,
+        'data': data,
+        'user_judet': user_judet  # Transmitem județul pentru context
     })
 
 @login_required
+def operator_view(request):
+    # Obține județul utilizatorului din profil
+    user_judet = request.user.profile.judet
+    magazine = Magazin.objects.filter(judet=user_judet) if user_judet else Magazin.objects.none()
+
+    # Obține datele din SelectedData pentru produsele din magazinele din județul utilizatorului
+    # data = SelectedData.objects.filter(store__in=magazine)
+    data = SelectedData.objects.filter(store__in=magazine, price__isnull=True)
+
+
+    if request.method == 'POST':
+        # Salvează prețurile introduse de operator
+        for entry in data:
+            price_key = f'price_{entry.id}'
+            price_value = request.POST.get(price_key)
+
+            if price_value:  # Doar dacă un preț a fost introdus
+                # Actualizează direct în SelectedData
+                entry.price = price_value
+                entry.save()
+
+
+
+
+            # if price_value:  # Doar dacă un preț a fost introdus
+            #     # Salvăm în tabela SavedPrices
+            #     SavedPrices.objects.create(
+            #         product=entry.product,
+            #         store=entry.store,
+            #         price=price_value,
+            #         operator=request.user  # Utilizatorul care a salvat prețul
+            #     )
+
+        return render(request, 'success.html', {"message": "Prețurile au fost salvate!"})
+
+    # Transmite datele către șablon
+    return render(request, 'operator_view.html', {
+        'data': data,
+        'user_judet': user_judet  # Transmitem județul pentru context
+    })
+
+
+@login_required
 def redirect_after_login(request):
-    if request.user.groups.filter(name='Operatori').exists():
-        return redirect('operator-view')  # Redirecționează la operator_view
-    elif request.user.groups.filter(name='Client').exists():
-        return redirect('select-products')  # Redirecționează la select_products
+    if request.user.groups.filter(name='Client').exists():
+        return redirect('select_products')  # Redirecționează la select_products
+    # elif request.user.groups.filter(name='Operator').exists():
+    #     return redirect('operator-view')  # Redirecționează la operator_view
     else:
-        return redirect('home')  # Redirecționează la o pagină implicită (poate fi dashboard-ul principal)
+        # return redirect('home')  # Redirecționează la pagina principală implicită
+        return redirect('operator-view')  # Redirecționează la operator_view
 
 
-    # elif request.user.groups.filter(name='Client').exists():
-    #     return redirect('select-products')  # Redirecționează la select_products
-    # else:
-    #     return redirect('home')  # Redirecționează la o pagină implicită (poate fi dashboard-ul principal)
+@csrf_exempt
+def save_selected(request):
+    if request.method == 'POST':
+        # Preluăm combinațiile selectate
+        selected_combinations = request.POST.getlist('selected_combinations')
+
+        # Ștergem datele anterioare (opțional)
+        # SelectedData.objects.all().delete()
+
+        # Salvăm combinațiile selectate
+        for combination in selected_combinations:
+            product_id, store_id = combination.split("-")
+            product = Produs.objects.get(id=product_id)
+            store = Magazin.objects.get(id=store_id)
+            user = request.user
+            # SelectedData.objects.create(product=product, store=store, user=user)
+            SelectedData.objects.create(
+                product=product,
+                store=store,
+                user=request.user,  # Salvează utilizatorul conectat
+                price = None  # Inițial NULL
+            )
+            html_content = render_to_string('save_success.html')
+            return HttpResponse(html_content)
+
+        return HttpResponse('Invalid request method.', status=400)
+
+        # return HttpResponse('Selected products and stores saved successfully!')
+
+    # return HttpResponse('Invalid request method.', status=400)
+
+def view_selected(request):
+    data = SelectedData.objects.all()
+    return render(request, 'view_selected.html', {'data': data})
+
+def user_logout(request):
+    logout(request)
+    return redirect('/login/')
+
+
+@login_required
+def view_results(request):
+    user = request.user
+    products = Produs.objects.all()
+    stores = Magazin.objects.all()
+
+    selected_products = request.GET.getlist('products')
+    selected_stores = request.GET.getlist('stores')
+
+    # Filtrăm datele pentru utilizator
+    data = SelectedData.objects.filter(user=user)
+
+    if selected_products:
+        data = data.filter(product__id__in=selected_products)
+    if selected_stores:
+        data = data.filter(store__id__in=selected_stores)
+
+    # Construim chart_data pentru template
+    chart_data = {}
+    for entry in data:
+        product_name = entry.product.denumire
+        store_name = entry.store.magazin
+        if product_name not in chart_data:
+            chart_data[product_name] = {}
+        if store_name not in chart_data[product_name]:
+            chart_data[product_name][store_name] = []
+
+        chart_data[product_name][store_name].append({
+            'date': entry.created_at.strftime('%Y-%m-%d'),
+            'price': float(entry.price) if entry.price else None,
+        })
+
+    # Debugging: printăm datele în consolă
+    print(json.dumps(chart_data, indent=4))
+
+    context = {
+        'products': products,
+        'stores': stores,
+        'chart_data': chart_data,  # Datele pentru template
+    }
+    return render(request, 'view_results.html', context)

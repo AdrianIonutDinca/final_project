@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.models import *
 from django.contrib.auth.models import User
+from django.utils.timezone import now
 
 
 # Create your models here.
@@ -64,6 +65,11 @@ class Magazin(models.Model):
     def __str__(self):
         return f'{self.magazin} ({self.judet})'
 
+
+
+
+
+
 class OperatorProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     judet = models.CharField(max_length=128, blank=True, null=True)  # Câmp pentru județ
@@ -88,3 +94,30 @@ class Preturi(models.Model):
 
     def __str__(self):
         return f"{self.produs.denumire} - {self.magazin.magazin}: {self.pret} lei"
+
+class SelectedData(models.Model):
+    product = models.ForeignKey(Produs, on_delete=models.CASCADE)
+    store = models.ForeignKey(Magazin, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    date_added = models.DateTimeField(auto_now_add=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Prețul, inițial NULL
+    created_at = models.DateTimeField(default=now, null=True, blank=True)
+
+    class Meta:
+        verbose_name_plural = 'Selected Data'
+
+    def __str__(self):
+        return f'{self.product.denumire} - {self.store.magazin}'
+
+class SavedPrices(models.Model):
+    product = models.ForeignKey(Produs, on_delete=models.CASCADE)
+    store = models.ForeignKey(Magazin, on_delete=models.CASCADE)
+    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    operator = models.ForeignKey(User, on_delete=models.CASCADE)  # Utilizatorul care a salvat datele
+    date_saved = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name_plural = 'Saved Prices'
+
+    def __str__(self):
+        return f'{self.product.denumire} - {self.store.magazin} - {self.price}'

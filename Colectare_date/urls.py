@@ -19,19 +19,32 @@ from django.urls import path, include
 from viewer import views
 from viewer.views import SelectProductsView, SelectedProductsView, redirect_after_login
 from django.contrib.auth import views as auth_views
-
-
+from viewer.views import select_products
+from viewer.views import selected_products
+from viewer.views import save_selected, view_selected
+from django.views.generic import RedirectView
+from viewer.views import view_results
 
 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('', RedirectView.as_view(url='login/', permanent=True)),
+    path('login/', auth_views.LoginView.as_view(), name='login'),
     path('produse/', views.lista_produse, name='lista_produse'),
     path('magazine/', views.lista_magazine, name='lista_magazine'),
+    # path('select-products/', select_products, name='select_products'),
     path('select-products/', SelectProductsView.as_view(), name='select_products'),
+    # path('selected-products/', selected_products, name='selected_products'),
     path('selected-products/', SelectedProductsView.as_view(), name='selected_products'),
     path('accounts/login/', auth_views.LoginView.as_view(), name='login'),
     path('accounts/logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('operator/', views.operator_view, name='operator-view'),
     path('redirect-after-login/', redirect_after_login, name='redirect-after-login'),
+    path('save_selected/', save_selected, name='save_selected'),
+    path('view-selected/', view_selected, name='view_selected'),
+    path('operator/', views.operator_view, name='operator-view'),  # Adaugă ruta pentru operator_view
+    path('save_selected/', save_selected, name='save_selected'),
+    path('view-results/', view_results, name='view_results'),
+
 ]

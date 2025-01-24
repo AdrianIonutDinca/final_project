@@ -3,12 +3,14 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from .models import OperatorProfile
 from .models import Categ, Produs, Magazin
+from viewer.models import SelectedData
 
 # Register your models here.
 
 admin.site.register(Categ)
 admin.site.register(Produs)
 admin.site.register(Magazin)
+admin.site.register(SelectedData)
 
 class OperatorProfileInline(admin.StackedInline):
     model = OperatorProfile
